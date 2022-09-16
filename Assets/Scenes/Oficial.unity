@@ -10154,8 +10154,8 @@ MonoBehaviour:
   hoverbarbarian: {fileID: 21300000, guid: fa0e35f0b30c30c499b142ad20264868, type: 3}
   nonColonizable: {fileID: 21300000, guid: c478947555cbb304a8d8881c2f58c8c1, type: 3}
   hovernonColonizable: {fileID: 21300000, guid: c478947555cbb304a8d8881c2f58c8c1, type: 3}
-  valley: {fileID: 21300000, guid: 6e53c328e28f9484e94c425afe017c84, type: 3}
-  hovervalley: {fileID: 21300000, guid: ef5fc55d0e0fb2f4491840247255a39d, type: 3}
+  valley: {fileID: 21300000, guid: b98d3dfcca56aed48abdfb0367d3c660, type: 3}
+  hovervalley: {fileID: 21300000, guid: 42687092fb16e4f45b9b65f3ae270cdf, type: 3}
   Parent: {fileID: 1198219945}
 --- !u!114 &1198219949
 MonoBehaviour:
@@ -11196,7 +11196,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1352134322
 RectTransform:
   m_ObjectHideFlags: 0
@@ -17961,7 +17961,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2145779758
 RectTransform:
   m_ObjectHideFlags: 0

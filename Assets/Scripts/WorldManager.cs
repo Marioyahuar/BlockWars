@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
+using System.Threading.Tasks;
 public class WorldManager : GenericSingleton<WorldManager>
 {
     public TileData selectedTile;
@@ -200,12 +201,14 @@ public class WorldManager : GenericSingleton<WorldManager>
         double distancia = Math.Sqrt(Math.Pow((destinoY - inicioY), 2) + Math.Pow((destinoX - inicioX), 2));
         return (int)distancia;
     }
-    public async void FetchWorld()
+    public async Task<bool> FetchWorld()
     {
         var array = await Web.Instance.ObtenerMundo();
         _tilesData = Utilities.ConvertArrayToDictionary(array);
         WorldRenderer.Instance.RenderWorld(_tilesData);
         ServerRonda = await Web.Instance.ObtenerRonda();
+        Debug.Log("FetchWorld complete");
+        return true;
     }
 
     public void FetchWorldData()

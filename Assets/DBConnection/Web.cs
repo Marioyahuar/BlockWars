@@ -65,7 +65,7 @@ public class Web : GenericSingleton<Web>
             PlayerDataSimple.Instance.playerVillages.Add(newVillage);
         }
         UIManager.Instance.SetCitiesDropDown();
-        WorldManager.Instance.FetchWorld();
+        bool test = await WorldManager.Instance.FetchWorld();
         UIManager.Instance.movimientosUI.CheckAttacks();
         UIManager.Instance.GoToWorld();
         UIManager.Instance.SelectCity(0);

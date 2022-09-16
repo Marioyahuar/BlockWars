@@ -179,8 +179,8 @@ public class UIManager : GenericSingleton<UIManager>
     }
     public void CreateUser()
     {
-        //Web.Instance.CrearUsuario(wallet.text, userName.text);
-        Web.Instance.CrearUsuario(PlayerDataSimple.Instance.key.PublicAddress, userName.text);
+        Web.Instance.CrearUsuario(wallet.text, userName.text);
+        //Web.Instance.CrearUsuario(PlayerDataSimple.Instance.key.PublicAddress, userName.text);
     }
     public void PasarRonda()
     {

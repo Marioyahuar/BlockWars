@@ -8,6 +8,7 @@ public class MovimientosUI : MonoBehaviour
     public Transform parent;
     public GameObject movimientoPrefab;
     public GameObject movButton;
+    string[] tipoMovs = { "Reclutar", "Ampliar", "Enviar", "Atacar", "Colonizar" };
 
     public async void RefreshMovimientosPanel(CityOrders[] ordenes)
     {
@@ -24,7 +25,7 @@ public class MovimientosUI : MonoBehaviour
                 Movimiento mov = newMov.GetComponent<Movimiento>();
                 TileData tileOrigen = WorldManager.Instance.GetTileFromIDSpot(ordenes[i].orders[j].IDCiudadOrigen);
                 TileData tileDestino = WorldManager.Instance.GetTileFromIDSpot(ordenes[i].orders[j].IDCiudadDestino);
-                mov.tipoMov.text = ordenes[i].orders[j].IDTipo_Orden.ToString();
+                mov.tipoMov.text =tipoMovs[ordenes[i].orders[j].IDTipo_Orden - 1];
                 mov.ciudadOrigen.text = tileOrigen.nombre + "\n" + tileOrigen.ubicacion;
                 mov.ciudadDestino.text = tileDestino.nombre + "\n" + tileDestino.ubicacion;
                 mov.rondaLlegada.text = ordenes[i].orders[j].Rondafin.ToString();                
@@ -59,6 +60,7 @@ public class MovimientosUI : MonoBehaviour
 
     public async void CheckAttacks()
     {
+        Debug.Log("Checking");
         PlayerDataSimple.Instance.ordenes = await Web.Instance.ObtenerOrdenes(PlayerDataSimple.Instance.userID);
         CityOrders[] missions = PlayerDataSimple.Instance.ordenes;
         for (int i = 0; i < missions.Length; i++)
