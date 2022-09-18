@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class Movimiento : MonoBehaviour
 {
+    public Image tipoIcon;
     public Text tipoMov;
     public Text ciudadOrigen;
     public Text ownerOrigen;

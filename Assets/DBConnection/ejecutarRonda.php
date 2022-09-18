@@ -63,6 +63,9 @@ for($l = 0; $l < $totalordenesAtaque; $l++){
     //echo json_encode($result2);
 }
 
+//Restore Bárbaros
+$result = RestoreBarbarians($rondaActual);
+
 echo json_encode($rondaActual);
 //echo json_encode($result2);
 

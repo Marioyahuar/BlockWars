@@ -24,6 +24,58 @@ public class UIManager : GenericSingleton<UIManager>
     public Text rondaActual;
     public Text globalUserName;
     public GameObject Avisos;
+
+    public GameObject panelCrearUser;
+    public GameObject panelIniciarJuego;
+
+
+    public GameObject initPanelv2;
+    public Button btnLogin;
+    public Button btnRegistrar;
+    public Button btnIniciar;
+
+    public InputField inUserName;
+    public Text textWallet;
+    public Text textUser;
+    public int tropasParaColonizar = 20;
+    private void Start()
+    {
+        textWallet.text = "";
+        textUser.text = "";
+        panelCrearUser.SetActive(false);
+        panelIniciarJuego.SetActive(false);
+    }
+
+    public async void OnConnectWallet()
+    {
+        if (await Web.Instance.OnConnectWalletVerifyIsUserExist())
+        {
+            btnLogin.interactable = false;
+            panelCrearUser.SetActive(false);
+            panelIniciarJuego.SetActive(true);
+        }
+        else
+        {
+            btnLogin.interactable = false;
+            panelCrearUser.SetActive(true);
+            panelIniciarJuego.SetActive(false);
+            
+        }
+        
+    }
+
+    public void onEdit()
+    {
+        if(inUserName.text.Length > 4)
+        {
+            btnRegistrar.interactable = true;
+        }
+        else
+        {
+            btnRegistrar.interactable = false;
+        }
+    }
+
     public void SetTextRondaActual(string text)
     {
         rondaActual.text = text;
@@ -38,10 +90,11 @@ public class UIManager : GenericSingleton<UIManager>
     {
         cityUI.cityName.text = PlayerDataSimple.Instance.playerVillages[cityIndex].villageName;
         cityUI.cityNivel.text = PlayerDataSimple.Instance.playerVillages[cityIndex].villageActualLevel.ToString();
-        cityUI.cityTropas.text = PlayerDataSimple.Instance.playerVillages[cityIndex].troopQty.ToString() + " TROPAS";
         cityUI.cityMaxNivel.text = PlayerDataSimple.Instance.playerVillages[cityIndex].villageMaxLevel.ToString();
-        cityUI.cityProductionRate.text = cityUI.cityNivel.text;
-        
+        cityUI.cityProductionRate.text = cityUI.cityNivel.text + "\n" + "TROOPS";
+        cityUI.cityTropaSubirNivel.text = ((int)Mathf.Pow(PlayerDataSimple.Instance.playerVillages[cityIndex].villageActualLevel, 2) * 10).ToString() + "\n" + "TROOPS";
+        foreach(Text troopTXT in cityUI.cityTropas) troopTXT.text = PlayerDataSimple.Instance.playerVillages[cityIndex].troopQty.ToString() + "\n" + "TROOPS";
+
     }
     public async void VerMovimientos()
     {
@@ -55,7 +108,7 @@ public class UIManager : GenericSingleton<UIManager>
         reportesUI.RefreshReportesPanel(PlayerDataSimple.Instance.reportes);
         reportesUI.gameObject.SetActive(true);
     }
-    public async void VerReporteDetail(Reporte report)
+    public void VerReporteDetail(Reporte report)
     {
         reporteDetail.gameObject.SetActive(true);
         reporteDetail.RefreshReporteDetails(report);
@@ -65,18 +118,18 @@ public class UIManager : GenericSingleton<UIManager>
         if (tile.state == TypeSpot.city)
         {
             worldUI.userName.text = tile.uname;
-            worldUI.tropa.text = "TROPAS: ¿?";
+            worldUI.tropa.text = "TROOPS: ¿?";
         }
         else
         {
             worldUI.userName.text = tile.state.ToString();
-            worldUI.tropa.text = "TROPAS: " + tile.tropas.ToString();
+            worldUI.tropa.text = "TROOPS: " + tile.tropas.ToString();
         }
 
-        worldUI.villageCoord.text = "Coordenadas: " + tile.ubicacion;
-        worldUI.nivel.text = "NIVEL: " + tile.level;
-        worldUI.nivelMax.text = "Nivel MAX: " + tile.maxLevel;
-        worldUI.distance.text = "Distancia: " + distance;
+        worldUI.villageCoord.text = "Coords: " + tile.ubicacion;
+        worldUI.nivel.text = "LEVEL: " + tile.level;
+        worldUI.nivelMax.text = "LEVEL MAX: " + tile.maxLevel;
+        worldUI.distance.text = "DISTANCE: " + distance;
 
         RefreshButtons(tile);
 
@@ -119,20 +172,29 @@ public class UIManager : GenericSingleton<UIManager>
         sendOrderUI.gameObject.SetActive(true);
         sendOrderUI.RefreshSendOrderUI(WorldManager.Instance.ServerRonda, WorldManager.Instance.CalculateDistance(WorldManager.Instance.selectedTile.ubicacion),tipoOrden);
     }
-    public void CrearOrdenDeEnvioDeTropa()//Funciona para ataques y defensas (y colonozicaiones)
+    public void Empezar()
+    {
+        Web.Instance.Empezar();
+    }
+    public void CrearOrdenDeEnvioDeTropa()//Funciona para ataques y defensas (y colonizaciones)
     {
         if (sendOrderUI.tipoDeOrden == 5)
         {
-            if (PlayerDataSimple.Instance.GetVillageSelected().troopQty >= 50)
+            if (PlayerDataSimple.Instance.GetVillageSelected().troopQty >= tropasParaColonizar)
             {
-                WorldManager.Instance.GenerarEnvioDeTropas(sendOrderUI.tipoDeOrden, 50);
+                WorldManager.Instance.GenerarEnvioDeTropas(sendOrderUI.tipoDeOrden, tropasParaColonizar);
+            }
+            else
+            {
+                SetAvisos("You don't have enough troops.");
             }
         }
         else
         {
             if (int.Parse(sendOrderUI.inputTropas.text) > PlayerDataSimple.Instance.GetVillageSelected().troopQty)
             {
-                Debug.Log("No tienes tantas tropas");
+                //Debug.Log("No tienes tantas tropas");
+                SetAvisos("You don't have that many troops.");
                 return;
             }
             WorldManager.Instance.GenerarEnvioDeTropas(sendOrderUI.tipoDeOrden, int.Parse(sendOrderUI.inputTropas.text));
@@ -141,12 +203,14 @@ public class UIManager : GenericSingleton<UIManager>
     }
     public void CrearOrdenSubidaDeNivel()
     {
-        if (PlayerDataSimple.Instance.GetVillageSelected().troopQty < 20 || PlayerDataSimple.Instance.GetVillageSelected().villageActualLevel == PlayerDataSimple.Instance.GetVillageSelected().villageMaxLevel)
+        int troopToSacrifice = (int)Mathf.Pow(PlayerDataSimple.Instance.GetVillageSelected().villageActualLevel, 2) * 10;
+        if (PlayerDataSimple.Instance.GetVillageSelected().troopQty < troopToSacrifice || PlayerDataSimple.Instance.GetVillageSelected().villageActualLevel == PlayerDataSimple.Instance.GetVillageSelected().villageMaxLevel)
         {
-            Debug.Log("No tienes tantas tropas o ya alcanzaste el nivel máximo");
+            //Debug.Log("No tienes tantas tropas o ya alcanzaste el nivel máximo");
+            UIManager.Instance.SetAvisos("You need more troops to level up your village");
             return;
         }
-        PlayerDataSimple.Instance.CreateOrder(2, PlayerDataSimple.Instance.GetIDCitySelected(), PlayerDataSimple.Instance.GetIDCitySelected(), WorldManager.Instance.ServerRonda, 20, WorldManager.Instance.ServerRonda + 1, 0);
+        PlayerDataSimple.Instance.CreateOrder(2, PlayerDataSimple.Instance.GetIDCitySelected(), PlayerDataSimple.Instance.GetIDCitySelected(), WorldManager.Instance.ServerRonda, troopToSacrifice, WorldManager.Instance.ServerRonda + 1, 0); //IMPORTANTE >> El descuento de tropa por subida de nivel debería ser controlado por servidor. El control del nivel también. 
     }
     public void CrearOrdenFabricarTropa()
     {
@@ -176,11 +240,24 @@ public class UIManager : GenericSingleton<UIManager>
         World.SetActive(true);
         CityPanel.SetActive(true);
         GeneralinfoPanel.SetActive(true);
+
+        panelCrearUser.SetActive(false);
+        panelIniciarJuego.SetActive(false);
+        initPanelv2.SetActive(false);
     }
-    public void CreateUser()
+    public async void CreateUser()
     {
-        Web.Instance.CrearUsuario(wallet.text, userName.text);
-        //Web.Instance.CrearUsuario(PlayerDataSimple.Instance.key.PublicAddress, userName.text);
+        if(await Web.Instance.CreateUserV2(PlayerDataSimple.Instance.key.PublicAddress, inUserName.text))
+        {
+            UIManager.Instance.SetAvisos("Account created. You can start the game.");
+            panelCrearUser.SetActive(false);
+            panelIniciarJuego.SetActive(true);
+        }
+        else{
+            UIManager.Instance.SetAvisos("Account creation failed. Please retry.");
+            panelCrearUser.SetActive(true);
+            panelIniciarJuego.SetActive(false);
+        }
     }
     public void PasarRonda()
     {
@@ -201,7 +278,7 @@ public class UIManager : GenericSingleton<UIManager>
             {
                 ucitydd.options.Add(new Dropdown.OptionData(option));
             }
-            ucitydd.value = 0;
+            ucitydd.value = PlayerDataSimple.Instance.GetCitySelected();
             ucitydd.RefreshShownValue();
         }
     }

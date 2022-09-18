@@ -86,12 +86,13 @@ public class WorldManager : GenericSingleton<WorldManager>
          //Debug.Log("unclaimed [7]: " + percentage(countT, count7) + "%  " + count7);
      }*/
 
-    /*private void Awake()
+    private void Awake()
     {
+        Application.runInBackground = true;
         //UnityEngine.Random.InitState(seed);
         //CreateNewWorld();
         //GenerateWorld();
-    }*/
+    }
 
     private async void Start()
     {
@@ -109,7 +110,7 @@ public class WorldManager : GenericSingleton<WorldManager>
         long resto = timestamp % duracionRondaenSeg;
         long timestampSigRonda = (timestamp - resto + duracionRondaenSeg);
         var next = ConvertFromTimestamp(timestampSigRonda);
-        Debug.Log("next round time = " + next);
+        //Debug.Log("next round time = " + next);
         return next;
     }
 
@@ -121,15 +122,15 @@ public class WorldManager : GenericSingleton<WorldManager>
             //currentTime = currentTime.AddSeconds(1);
             currentTime = DateTime.UtcNow;
             var roundnTime = ShowCurrentRound();
-            string txt = string.Format("Ronda: {0} \n {1:00}:{2:00} Left", roundnTime.round, roundnTime.left.Minutes, roundnTime.left.Seconds);
+            string txt = string.Format("Round: {0} \n {1:00}:{2:00} Left", roundnTime.round, roundnTime.left.Minutes, roundnTime.left.Seconds);
             UIManager.Instance.SetTextRondaActual(txt);
-            if (currentTime >= nextRoundTime)
+            if (currentTime >= nextRoundTime.AddSeconds(2))
             {
                 //ShowCurrentRound();
                 nextRoundTime = CalcularNextRoundTime(currentTime);
                 //DatetimeToText(nextRound);
                 //ejecutar comando de actualizacion;
-                if (PlayerDataSimple.Instance.userWallet != null)
+                if (PlayerDataSimple.Instance.userWallet != "" && !(PlayerDataSimple.Instance.userID <= 0))
                 {
                     Web.Instance.Conectar(PlayerDataSimple.Instance.userWallet);
                 }
@@ -207,7 +208,7 @@ public class WorldManager : GenericSingleton<WorldManager>
         _tilesData = Utilities.ConvertArrayToDictionary(array);
         WorldRenderer.Instance.RenderWorld(_tilesData);
         ServerRonda = await Web.Instance.ObtenerRonda();
-        Debug.Log("FetchWorld complete");
+        //Debug.Log("FetchWorld complete");
         return true;
     }
 
@@ -239,6 +240,11 @@ public class WorldManager : GenericSingleton<WorldManager>
         var match = _tilesData.Where(td => td.Value.IDSpot == idSpot);
         return match.FirstOrDefault().Value;
         //return TileData.Null();
+    }
+
+    public Tile GetTileSpotFromIDSpot(int idSpot)
+    {
+        return WorldRenderer.Instance.allTiles.Find(tile => tile.idSpot == idSpot);
     }
 
     public CalculatedTile CalculateTileRarities()

@@ -4,8 +4,26 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Threading.Tasks;
+using UnityEngine.Events;
 public class Web : GenericSingleton<Web>
 {
+    struct Network
+    {
+        public string chain;
+        public string network;
+        public string rpc;
+        string chainId;
+
+        public Network(string chain, string network, string rpc, string chainId)
+        {
+            this.chain = chain;
+            this.network = network;
+            this.rpc = rpc;
+            this.chainId = chainId;
+        }
+    }
+    private Network cronosTesnet = new Network("cronos", "testnet", "https://evm-dev-t3.cronos.org", "338");
+    private Network cronosMainnet = new Network("cronos", "mainnet", "https://evm-dev.cronos.org", "25");
     // Start is called before the first frame update
     async void Start()
     {
@@ -17,6 +35,8 @@ public class Web : GenericSingleton<Web>
         //StartCoroutine(CreateSpots());
         //StartCoroutine(obtenerMundo());
         await ObtenerServerInfo();
+        //string res = await EVM.ChainId(cronosTesnet.chain, cronosTesnet.network, cronosTesnet.rpc);
+        //Debug.Log("res: " + res);
     }
 
     async public Task<bool> OnloginWallet()
@@ -37,11 +57,31 @@ public class Web : GenericSingleton<Web>
         {
             print("Account: " + account);
             PlayerDataSimple.Instance.key = new Key(account);
+            UIManager.Instance.textWallet.text = account;
             // load next scene
-            Debug.Log("logged with metamask");
+            //Debug.Log("logged with metamask");
             return true;
         }
         return false;
+    }
+    public async Task<bool> OnConnectWalletVerifyIsUserExist()
+    {
+        if(!await OnloginWallet())
+        {
+            return false;
+        }
+        string userWallet = PlayerDataSimple.Instance.userWallet = PlayerDataSimple.Instance.key.PublicAddress;
+        //if (!await OnloginWallet()) { Debug.LogWarning("no se pudo conectar"); };
+        //PlayerDataSimple.Instance.userID = await ObtenerIDUsuario(PlayerDataSimple.Instance.key.PublicAddress);
+        PlayerDataSimple.Instance.userID = await ObtenerIDUsuario(userWallet);
+        //Debug.Log("userID : " + PlayerDataSimple.Instance.userID);
+        if(PlayerDataSimple.Instance.userID == -1 )
+        {
+            return false;
+        }
+        UIManager.Instance.textUser.text = await ObtenerNombreUsuario(PlayerDataSimple.Instance.userID);
+        //Debug.Log("textUser : " + PlayerDataSimple.Instance.userID);
+        return true;     
     }
 
     public async void ConectarRegistro()
@@ -49,11 +89,17 @@ public class Web : GenericSingleton<Web>
         if (!await OnloginWallet()) { Debug.LogWarning("no se pudo conectar"); };
     }
 
+    public void Empezar()
+    {
+        Conectar(PlayerDataSimple.Instance.key.PublicAddress);
+    }
+
     public async void Conectar(string userWallet)
     {
         PlayerDataSimple.Instance.userWallet = userWallet;
         //if (!await OnloginWallet()) { Debug.LogWarning("no se pudo conectar"); };
         //PlayerDataSimple.Instance.userID = await ObtenerIDUsuario(PlayerDataSimple.Instance.key.PublicAddress);
+        Debug.Log(PlayerDataSimple.Instance.userWallet);
         PlayerDataSimple.Instance.userID = await ObtenerIDUsuario(userWallet);
         PlayerDataSimple.Instance.userName = await ObtenerNombreUsuario(PlayerDataSimple.Instance.userID);
         UIManager.Instance.SetGlobalUsername();
@@ -68,7 +114,7 @@ public class Web : GenericSingleton<Web>
         bool test = await WorldManager.Instance.FetchWorld();
         UIManager.Instance.movimientosUI.CheckAttacks();
         UIManager.Instance.GoToWorld();
-        UIManager.Instance.SelectCity(0);
+        UIManager.Instance.SelectCity(PlayerDataSimple.Instance.GetCitySelected());
     }
     public async void RefreshUserCities()
     {
@@ -78,9 +124,9 @@ public class Web : GenericSingleton<Web>
         {
             PlayerVillage newVillage = new PlayerVillage(village.IDMundoSpot, village.Nombre, village.Ubicacion, village.NivelMax, village.NivelActual, village.Tropas);
             PlayerDataSimple.Instance.playerVillages.Add(newVillage);
-            UIManager.Instance.SetCitiesDropDown();
-            UIManager.Instance.SelectCity(PlayerDataSimple.Instance.GetIDCitySelected());
         }
+        UIManager.Instance.SetCitiesDropDown();
+        UIManager.Instance.SelectCity(PlayerDataSimple.Instance.GetCitySelected());
     }
     public void CrearUsuario(string wallet, string username)
     {
@@ -123,6 +169,7 @@ public class Web : GenericSingleton<Web>
                 byte[] results = www.downloadHandler.data;
                 Debug.Log(results);
             }
+            www.Dispose();
         }
 
     }
@@ -160,7 +207,38 @@ public class Web : GenericSingleton<Web>
         Debug.Log("Status Code: " + request.responseCode);
         Debug.Log(request.downloadHandler.text);
         UIManager.Instance.SetAvisos("Cuenta creada. Por favor ingresa con tu dirección de wallet en el panel LOGIN.");
+        request.Dispose();
     }
+
+    public async Task<bool> CreateUserV2(string userWallet, string userName)
+    {
+        UserData newUser = new UserData();
+        newUser.Wallet = userWallet;
+        newUser.Username = userName;
+
+        string json = JsonUtility.ToJson(newUser);
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+
+        var request = new UnityWebRequest("https://block-chest.com/PixelWars/crearUsuario.php", "POST");
+        request.uploadHandler = (UploadHandler)new UploadHandlerRaw(bodyRaw);
+        request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
+        await request.SendWebRequest();
+        Debug.Log("Status Code: " + request.responseCode);
+        Debug.Log(request.downloadHandler.text);
+        if (request.isNetworkError || request.isHttpError)
+        {
+            Debug.Log(request.error);
+            request.Dispose();
+            return false;
+        }
+        else
+        {
+            request.Dispose();
+            return true;
+        }
+    }
+
     IEnumerator CreateSpots()//WorldSlot[] Slots)
     {
         int worldXSize = WorldManager.Instance.config.width;
@@ -186,13 +264,14 @@ public class Web : GenericSingleton<Web>
                 request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
                 request.SetRequestHeader("Content-Type", "application/json");
                 yield return request.SendWebRequest();
-                Debug.Log("Status Code: " + request.responseCode);
-                Debug.Log(request.downloadHandler.text);
+                //Debug.Log("Status Code: " + request.responseCode);
+                //Debug.Log(request.downloadHandler.text);
             }
         }
     }
     IEnumerator CreateFabricacionTropa(Order order) //Sirve para creacion de tropas
     {
+        UIManager.Instance.cityUI.crearTropa.interactable = false;
         string json = JsonUtility.ToJson(order);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
         var request = new UnityWebRequest("https://block-chest.com/PixelWars/crearFabricacionTropa.php", "POST");
@@ -200,13 +279,35 @@ public class Web : GenericSingleton<Web>
         request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
         yield return request.SendWebRequest();
-        Debug.Log("Status Code: " + request.responseCode);
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log("Status Code: " + request.responseCode);
+        //Debug.Log(request.downloadHandler.text);
+        if (request.downloadHandler.text != "1")
+        {
+            //request.downloadHandler.text.Split("\"")[1]
+            if (request.downloadHandler.text == "CreacionEnCurso")
+            {
+                UIManager.Instance.SetAvisos("There is already a troop build in progress for this city");
+            } else if(request.downloadHandler.text == "UpgradeEnCurso")
+            {
+                UIManager.Instance.SetAvisos("You cannot create troops if there is an expansion order");
+            }
+        }
+        else
+        {
+            UIManager.Instance.SetAvisos("New troops will join the city in the next round");
+            Tile creationTile = WorldManager.Instance.GetTileSpotFromIDSpot(order.IDCiudadDestino);
+            creationTile.actionSprite.GetComponent<SpriteRenderer>().sprite = WorldRenderer.Instance.cityCreating;
+            creationTile.actionSprite.SetActive(true);
+        }
         RefreshUserCities();
-        UIManager.Instance.SetAvisos("Una tropa se unirá a la ciudad en la próxima ronda");
+        
+        UIManager.Instance.cityUI.crearTropa.interactable = true;
+        request.Dispose();
     }
     IEnumerator CreateOrdenEnvioDeTropa(Order order) //Sirve para ataques y defensas
     {
+        UIManager.Instance.sendOrderUI.actionBTN.interactable = false;
+
         string json = JsonUtility.ToJson(order);
         byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
         var request = new UnityWebRequest("https://block-chest.com/PixelWars/crearEnvioTropa.php", "POST");
@@ -214,10 +315,29 @@ public class Web : GenericSingleton<Web>
         request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
         yield return request.SendWebRequest();
-        Debug.Log("Status Code: " + request.responseCode);
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log("Status Code: " + request.responseCode);
+        //Debug.Log(request.downloadHandler.text);
         RefreshUserCities();
-        UIManager.Instance.SetAvisos("Tus tropas iniciarán una misión en la próxima ronda");
+        UIManager.Instance.sendOrderUI.actionBTN.interactable = true;
+        UIManager.Instance.sendOrderUI.gameObject.SetActive(false);
+        UIManager.Instance.SetAvisos("Your troops will start a mission in the next round");
+        Tile destinoTile = WorldManager.Instance.GetTileSpotFromIDSpot(order.IDCiudadDestino);
+        if (order.IDTipo_Orden == 3)
+        {
+            //destinoTile.actionSprite.GetComponent<SpriteRenderer>().sprite = WorldRenderer.Instance.city;
+            //destinoTile.actionSprite.SetActive(true);
+        }
+        else if(order.IDTipo_Orden == 4)
+        {
+            destinoTile.actionSprite.GetComponent<SpriteRenderer>().sprite = WorldRenderer.Instance.cityAttacked;
+            destinoTile.actionSprite.SetActive(true);
+        }
+        else
+        {
+            destinoTile.actionSprite.GetComponent<SpriteRenderer>().sprite = WorldRenderer.Instance.cityColonizando;
+            destinoTile.actionSprite.SetActive(true);
+        }
+        request.Dispose();
     }
     IEnumerator CreateOrdenSubidaDeNivel(Order order) //Sirve para ataques y defensas
     {
@@ -228,10 +348,29 @@ public class Web : GenericSingleton<Web>
         request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
         yield return request.SendWebRequest();
-        Debug.Log("Status Code: " + request.responseCode);
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log("Status Code: " + request.responseCode);
+        //Debug.Log(request.downloadHandler.text);
+        if (request.downloadHandler.text != "1")
+        {
+            //request.downloadHandler.text.Split("\"")[1]
+            if (request.downloadHandler.text == "SubiendoNivel")
+            {
+                UIManager.Instance.SetAvisos("Village is already upgrading.");
+            }
+            else if (request.downloadHandler.text == "CreandoTropa")
+            {
+                UIManager.Instance.SetAvisos("You can upgrade your village while creating troops.");
+            }
+        }
+        else
+        {
+            UIManager.Instance.SetAvisos("Your village will go up one level in the next round");
+            Tile upgradeTile = WorldManager.Instance.GetTileSpotFromIDSpot(order.IDCiudadDestino);
+            upgradeTile.actionSprite.GetComponent<SpriteRenderer>().sprite = WorldRenderer.Instance.cityUpgrading;
+            upgradeTile.actionSprite.SetActive(true);
+        }
         RefreshUserCities();
-        UIManager.Instance.SetAvisos("Tu ciudad subirá un nivel en la próxima ronda");
+        request.Dispose();
     }
     public static IEnumerator InicializarServer(ServerInfo InicializacionServerInfo)
     {
@@ -242,8 +381,10 @@ public class Web : GenericSingleton<Web>
         request.downloadHandler = (DownloadHandler)new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
         yield return request.SendWebRequest();
-        Debug.Log("Status Code: " + request.responseCode);
-        Debug.Log(request.downloadHandler.text);
+        //Debug.Log("Status Code: " + request.responseCode);
+        //Debug.Log(request.downloadHandler.text);
+        ServerTime.Instance.CorrerTiempo();
+        request.Dispose();
     }
     IEnumerator PasarRonda()
     {
@@ -278,9 +419,17 @@ public class Web : GenericSingleton<Web>
         {
             Debug.Log(www.downloadHandler.text);
             string result = www.downloadHandler.text;
-            userID = int.Parse(result);
+            if (int.TryParse(result, out userID)) 
+            {
+                return userID;
+            }
+            else
+            {
+                return -1;
+            }
             //GetUsuarioCities(PlayerDataSimple.Instance.userID);
             //WorldManager.Instance.FetchWorld();
+            www.Dispose();
         }
 
         return userID;
@@ -302,6 +451,7 @@ public class Web : GenericSingleton<Web>
             string newtext = "{\"Items\":" + www.downloadHandler.text + "}";
             villages = JsonHelper.FromJson<MundoSpot>(newtext);
         }
+        www.Dispose();
         return villages;
     }
     public async Task<Reporte[]> GetUserReportes(int userID)
@@ -321,6 +471,7 @@ public class Web : GenericSingleton<Web>
             string newtext = "{\"Items\":" + www.downloadHandler.text + "}";
             reportes = JsonHelper.FromJson<Reporte>(newtext);
         }
+        www.Dispose();
         return reportes;
     }
     public async Task<MundoSpot[]> ObtenerMundo()
@@ -346,7 +497,7 @@ public class Web : GenericSingleton<Web>
             Debug.Log("mundo lenght: " + mundo.Count);
             WorldRenderer.Instance.RenderWorld(mundo);*/
         }
-
+        request.Dispose();
 
         return spots;
     }
@@ -367,7 +518,7 @@ public class Web : GenericSingleton<Web>
             nombreUsuario = request.downloadHandler.text;
         }
 
-
+        request.Dispose();
         return nombreUsuario;
     }
 
@@ -386,12 +537,12 @@ public class Web : GenericSingleton<Web>
         else
         {
             string newtext = request.downloadHandler.text;
-            Debug.Log(newtext);
+            //Debug.Log(newtext);
             newOrder = JsonUtility.FromJson<Order>(newtext);// JsonHelper.FromJson<Order>(newtext);
-            Debug.Log(newOrder);
+            //Debug.Log(newOrder);
         }
 
-
+        request.Dispose();
         return newOrder;
     }
     IEnumerator ObtenerUserName(int userID)
@@ -409,6 +560,7 @@ public class Web : GenericSingleton<Web>
                 string userName = www.downloadHandler.text;
                 WorldManager.Instance.selectedTile.uname = userName;
             }
+            www.Dispose();
         }
     }
     public async Task<int> ObtenerRonda()
@@ -428,7 +580,7 @@ public class Web : GenericSingleton<Web>
             ronda = request.downloadHandler.text;
         }
 
-
+        request.Dispose();
         return int.Parse(ronda);
     }
     public static async Task<string> ObtenerHoraServer()
@@ -447,6 +599,7 @@ public class Web : GenericSingleton<Web>
         {
             hora = request.downloadHandler.text;
         }
+        request.Dispose();
         return hora;
     }
     public static async Task<ServerInfo> ObtenerServerInfo()
@@ -466,6 +619,7 @@ public class Web : GenericSingleton<Web>
             serverInfo = JsonUtility.FromJson<ServerInfo>(request.downloadHandler.text);
             Debug.Log("server: "+ serverInfo.NombreServer);
         }
+        request.Dispose();
         return serverInfo;
     }
     public async Task<CityOrders[]> ObtenerOrdenes(int userID)
@@ -500,6 +654,7 @@ public class Web : GenericSingleton<Web>
             Debug.Log(json[0][0]["Rondafin"]);
             Debug.Log("---------");*/
         }
+        request.Dispose();
         return citiesOrders;
     }
 

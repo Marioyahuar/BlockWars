@@ -8,7 +8,9 @@ public class Tile : MonoBehaviour
 {
     [SerializeField] private Color _baseColor, _highlightedColor;
     [SerializeField] private SpriteRenderer _renderer;
+    public int idSpot;
     public GameObject _selectedEffect;
+    public GameObject actionSprite;
     private Color _auxColor;
     private Sprite _auxSprite, _hover;
 

@@ -6,7 +6,7 @@ using System;
 using UnityEngine.Events;
 using UnityEngine.Networking;
 
-public class ServerTime : MonoBehaviour
+public class ServerTime : GenericSingleton<ServerTime>
 {
     public ServerInfo InicializacionServerInfo;
     public ServerInfo ultimaConsultaServerInfo;
@@ -14,11 +14,11 @@ public class ServerTime : MonoBehaviour
     public DateTime lastqueryTime;
     public DateTime nextRound;
     public DateTime currentTime;
-    public InputField horaInicio;
 
     public Text textCurrentTime;
     public Text textCurrentRound;
     public Text textNextRoundTime;
+    public Text textTiempoParaIniciar;
 
     private static readonly DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -34,6 +34,7 @@ public class ServerTime : MonoBehaviour
 
     private async void Start()
     {
+        Application.runInBackground = true;
         ultimaConsultaServerInfo = await Web.ObtenerServerInfo();
         currentTime = lastqueryTime = DateTime.Parse(await Web.ObtenerHoraServer());
         nextRound = CalcularNextRoundTime(lastqueryTime);
@@ -42,7 +43,15 @@ public class ServerTime : MonoBehaviour
 
     public void InicializarServer()
     {
-        InicializacionServerInfo.TiempoInicializado = "2022-09-16 " + horaInicio.text;
+        DateTime time = DateTime.UtcNow;
+        DateTime newTime = time.AddSeconds(30);
+        Debug.Log(time.ToString("yyyy/MM/dd HH:mm:ss"));
+        Debug.Log(newTime.ToString("yyyy/MM/dd HH:mm:ss"));
+        string horaInicio = newTime.ToString("yyyy/MM/dd HH:mm:ss").Replace("/", "-");
+        Debug.Log(horaInicio);
+
+
+        InicializacionServerInfo.TiempoInicializado = horaInicio;
         StartCoroutine(Web.InicializarServer(InicializacionServerInfo));
     }
 
@@ -57,7 +66,8 @@ public class ServerTime : MonoBehaviour
 
     private string DatetimeToText(DateTime time)
     {
-        return time.TimeOfDay.ToString();
+        Debug.Log(time.ToString("HH:mm:ss"));
+        return time.ToString("HH:mm:ss");
     }
 
     IEnumerator  runTime()
@@ -70,14 +80,14 @@ public class ServerTime : MonoBehaviour
             currentTime = DateTime.UtcNow;
             if (!(currentTime < initServerTime))
             {
-                textCurrentTime.text = DatetimeToText(currentTime);
-                Debug.Log("time server:[" + currentTime.TimeOfDay);
+                textCurrentTime.text = "Hora Actual: " + DatetimeToText(currentTime);
+                //Debug.Log("time server:[" + currentTime.TimeOfDay);
                 //if (currentTime.Minute % 1 == 0 && currentTime.Second == 0)
                 if (currentTime >= nextRound)
                 {
                     //ShowCurrentRound();
                     nextRound = CalcularNextRoundTime(currentTime);
-                    textNextRoundTime.text = DatetimeToText(nextRound);
+                    textNextRoundTime.text = "Prox Ronda: " + DatetimeToText(nextRound);
                     //ejecutar comando de actualizacion;
                     using (UnityWebRequest www = UnityWebRequest.Get("https://block-chest.com/PixelWars/ejecutarRonda.php?"))
                     {
@@ -89,7 +99,7 @@ public class ServerTime : MonoBehaviour
                         }
                         else
                         {
-                            textCurrentRound.text = www.downloadHandler.text;
+                            textCurrentRound.text = "RONDA: " + www.downloadHandler.text;
                             Debug.Log(www.downloadHandler.text);
                             byte[] results = www.downloadHandler.data;
                             Debug.Log(results);
@@ -99,7 +109,8 @@ public class ServerTime : MonoBehaviour
             }
             else
             {
-                Debug.Log("en espera");
+                string tiempoespera = (initServerTime - currentTime).ToString("ss");
+                textTiempoParaIniciar.text = tiempoespera;
             }
         }
     }

@@ -8,6 +8,7 @@ public class WorldRenderer : GenericSingleton<WorldRenderer>
     [SerializeField] private Tile _tilePrefab;
     [SerializeField] private Transform _cam;
     [SerializeField] private WorldHandler worldHandler;
+    public List<Tile> allTiles;
     public Tile tilePicked;
     public Sprite myVillage;
     public Sprite hovermyVillage;
@@ -19,6 +20,10 @@ public class WorldRenderer : GenericSingleton<WorldRenderer>
     public Sprite hovernonColonizable;
     public Sprite valley;
     public Sprite hovervalley;
+    public Sprite cityAttacked;
+    public Sprite cityCreating;
+    public Sprite cityUpgrading;
+    public Sprite cityColonizando;
 
 
     public GameObject Parent;
@@ -32,16 +37,16 @@ public class WorldRenderer : GenericSingleton<WorldRenderer>
     }
     public void RenderWorld(Dictionary<Vector2Int,TileData> world)
     {
-        Debug.Log("world.Count: " + world.Count);
+        //Debug.Log("world.Count: " + world.Count);
         int mapSize =(int)Mathf.Sqrt((float)world.Count);
-        Debug.Log("mapSize: " + mapSize);
+        //Debug.Log("mapSize: " + mapSize);
         //GameObject Parent = new GameObject("World Tiles");
 
         foreach(Transform spot in Parent.transform)
         {
             Destroy(spot.gameObject);
         }
-
+        allTiles.Clear();
         string userid = PlayerDataSimple.Instance.userID.ToString();
         for (int x = 0; x < mapSize; x++)
         {
@@ -50,6 +55,7 @@ public class WorldRenderer : GenericSingleton<WorldRenderer>
                 TileData tileData = world[new Vector2Int(x, y)];
                 Tile spawnedTile = Instantiate(_tilePrefab, new Vector3(x, y), Quaternion.identity, Parent.transform);
                 spawnedTile.name = $"Tile [{x}, {y}]";
+                spawnedTile.idSpot = tileData.IDSpot;
                 //var isOffset = (x % 2 == 0 && y % 2 != 0) || (x % 2 != 0 && y % 2 == 0);
                 //spawnedTile.Init(isOffset);
                 if(tileData.state == TypeSpot.valley)
@@ -72,6 +78,7 @@ public class WorldRenderer : GenericSingleton<WorldRenderer>
                     }
 
                 }
+                allTiles.Add(spawnedTile);
             }
         }
         _cam.transform.position = new Vector3((float)mapSize / 2 - 0.5f, (float)mapSize / 2 - 0.5f, -10);

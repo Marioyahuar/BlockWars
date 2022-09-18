@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class Report : MonoBehaviour
 {
     public Reporte reporte;
+    public Image tipoIcon;
     public Text ronda;
     public Text atacante;
     public Text defensor;

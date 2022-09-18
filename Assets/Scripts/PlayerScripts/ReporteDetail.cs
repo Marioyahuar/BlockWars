@@ -20,7 +20,7 @@ public class ReporteDetail : MonoBehaviour
         string defensorUserName = await Web.Instance.ObtenerNombreUsuario(reporte.IDDefensor);
         if (defensorUserName == "null")
         {
-            defensorUserName = "Bárbaros";
+            defensorUserName = "Barbarians";
         }
         
         string ganador = "";
@@ -39,13 +39,13 @@ public class ReporteDetail : MonoBehaviour
         Order order = await Web.Instance.ObtenerOrdenPorID(reporte.IDOrdenEncurso);
         TileData tileDestino = WorldManager.Instance.GetTileFromIDSpot(order.IDCiudadDestino);
 
-        title.text = atacanteUserName +  " ataca a " + tileDestino.nombre + "(" + tileDestino.ubicacion + ")";
+        title.text = atacanteUserName +  " attacks " + tileDestino.nombre + "(" + tileDestino.ubicacion + ")";
         ronda.text = reporte.Ronda.ToString();
         atacanteName.text = atacanteUserName;
         defensorName.text = defensorUserName;
-        atacanteTropas.text = order.TropasSalida.ToString() + " tropas" + "(-" + reporte.PerdidaAtaque + ")";
-        defensorTropas.text = reporte.Defensores + " tropas" + "(-" + reporte.PerdidaDefensa + ")";
-        resultado.text = ganador + " ganó la batalla";
-        botin.text = (ganador == atacanteUserName) ? (elBotin.ToString() + " tropas se unieron a las filas de " + atacanteUserName) : "El atacante ha perdido";
+        atacanteTropas.text = order.TropasSalida.ToString() + " troops" + "(-" + reporte.PerdidaAtaque + ")";
+        defensorTropas.text = reporte.Defensores + " troops" + "(-" + reporte.PerdidaDefensa + ")";
+        resultado.text = ganador + " won the battle";
+        botin.text = (ganador == atacanteUserName) ? (elBotin.ToString() + " troops joined the army of " + atacanteUserName) : "The attacker has lost";
     }
 }

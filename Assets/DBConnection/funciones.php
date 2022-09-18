@@ -147,6 +147,49 @@ function obtenerReportesPorUsuario($userID){
     return $sentencia->fetchAll();
 }
 
+function ReiniciarServer(){
+    
+    $bd = obtenerConexion();
+    $sentencia = $bd-> prepare("DELETE FROM Reporte");
+    $sentencia1 = $bd-> prepare("alter table Reporte AUTO_INCREMENT=1");
+    $sentencia2 = $bd-> prepare("DELETE FROM orden_en_curso");
+    $sentencia3 = $bd-> prepare("alter table orden_en_curso AUTO_INCREMENT=1");
+    $sentencia4 = $bd-> prepare("UPDATE servidor SET Ronda = '0' WHERE servidor.IDServer = 1");
+    $sentencia5 = $bd-> prepare("UPDATE mundo SET Nombre= null,NivelActual=null,Tropas=null,TipoSpot='Valle',IDUsuario=Null WHERE TipoSpot='Ciudad'");
+    $sentencia6 = $bd-> prepare("UPDATE mundo SET Tropas=2 WHERE TipoSpot='Barbaros'");
+    $sentencia7 = $bd-> prepare("DELETE FROM usuario;");
+    $sentencia8 = $bd-> prepare("alter table usuario AUTO_INCREMENT=1");
+    $sentencia -> execute();
+    $sentencia1 -> execute();
+    $sentencia2 -> execute();
+    $sentencia3 -> execute();
+    $sentencia4 -> execute();
+    $sentencia5 -> execute();
+    $sentencia6 -> execute();
+    $sentencia7 -> execute();
+    $sentencia8 -> execute();
+    $result = 'Server reiniciado';
+    return  $result;
+
+    /*
+    DELETE FROM Reporte;
+alter table Reporte AUTO_INCREMENT=1;
+
+DELETE FROM orden_en_curso;
+alter table orden_en_curso AUTO_INCREMENT=1;
+
+
+UPDATE servidor SET Ronda = '0' WHERE servidor.IDServer = 1;
+
+
+UPDATE mundo SET Nombre= null,NivelActual=null,Tropas=null,TipoSpot='Valle',IDUsuario=Null WHERE TipoSpot='Ciudad';
+UPDATE mundo SET Tropas=2 WHERE TipoSpot='Barbaros';
+
+DELETE FROM usuario;
+alter table usuario AUTO_INCREMENT=1;
+    */
+}
+
 function BuscarAtaque($BuscarAtaque){
     $bd = obtenerConexion();
     $sentencia = $bd-> prepare("SELECT * FROM orden_en_curso WHERE IDTipo_Orden=4 AND Rondafin=? AND IDCiudadDestino=? AND Estado=1");
@@ -171,7 +214,7 @@ function BuscarSubidaNivel($ordenSubidaNivel){
 //Funciones de escritura
 function inicializarServer($horainicio){
     $bd = obtenerConexion();
-    $sentencia = $bd-> prepare("UPDATE server SET TiempoInicializado = ? where IDServer=1");
+    $sentencia = $bd-> prepare("UPDATE servidor SET TiempoInicializado = ? where IDServer=1");
     return $sentencia->execute([$horainicio]); 
 }
 
@@ -320,9 +363,9 @@ function EjecutarBatalla($atacantes,$defensores,$orden){
         $nuevaOrden->IDTipo_Orden = 3;
         $nuevaOrden->IDCiudadOrigen = $orden->IDCiudadDestino;
         $nuevaOrden->IDCiudadDestino = $orden->IDCiudadOrigen;
-        $nuevaOrden->RondaInicio = $orden->Rondafin;
+        $nuevaOrden->RondaInicio = $orden->Rondafin + 1;
         $nuevaOrden->TropasSalida = $atacantesSobrevivientes + floor($defensores/2); //+ floor($defensores/2)
-        $nuevaOrden->Rondafin = $orden->Rondafin + ($orden->Rondafin - $orden->RondaInicio);
+        $nuevaOrden->Rondafin = $orden->Rondafin + 1 + ($orden->Rondafin - $orden->RondaInicio);
         $nuevaOrden->TropasRetorno = 0;
         crearOrden($nuevaOrden);
     }
@@ -383,5 +426,17 @@ function finalizarOrden($ordenID){
     $bd = obtenerConexion();
     $sentencia = $bd-> prepare("UPDATE orden_en_curso SET Estado=0 where IDOrden_en_Curso=?");
     return $sentencia->execute([$ordenID]); 
+}
+
+function RestoreBarbarians($RondaActual){
+    $bd = obtenerConexion();
+    $mod = $RondaActual % 10;
+    if($mod == 0){
+        $sentencia = $bd-> prepare("UPDATE mundo SET Tropas=2 where TipoSpot = 'Barbaros' and Tropas=0");
+        return $sentencia->execute(); 
+    } else{
+        return 'No es hora de reiniciar';
+    }
+    
 }
 
