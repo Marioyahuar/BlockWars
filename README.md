@@ -1,4 +1,4 @@
-# BlockWars
+![Blockwars](https://github.com/Marioyahuar/BlockWars/blob/main/Assets/Sprites/PixelWarsOficial/Logo.png?raw=true)
 
 To play blockwars you need to download the client application and execute it. Download the folder "Application", open it and execute "Blockwars.exe".
 Remember you need a metamask wallet to connect to the game. Blockwars application automatically detects the chain and, if is not Cronos Testnet, it will add the network for the user. After connecting your wallet, you have to provide a username and that's all. Start playing Blockwars!
