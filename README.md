@@ -6,3 +6,7 @@ Remember you need a metamask wallet to connect to the game. Blockwars applicatio
 Important:
 The server is already started but you can restart it by executing the next url: https://block-chest.com/PixelWars/ReiniciarServidor.php
 Restart a blockwars server eliminates all current users and return the server to round 0. Do it with confidence because the current server is exclusively dedicated to the Moralis x Cronos hackathon.
+
+See the project Wiki for better understanding of game mechanics:
+Wiki Español: https://block-chest.gitbook.io/blockwars-espanol/
+Wiki English: https://block-chest.gitbook.io/blockwars-english/
